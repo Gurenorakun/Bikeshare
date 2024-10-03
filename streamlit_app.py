@@ -1,11 +1,7 @@
 import streamlit as st
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output
-import plotly.express as px
 import pandas as pd
-import numpy as np
+import plotly.express as px
+import matplotlib.pyplot as plt
 
 # Load the data
 day = pd.read_csv('./sample_data/day.csv')
@@ -86,62 +82,52 @@ day['weather'] = day['weather'].apply(change_weather)
 hour['weather'] = hour['weather'].apply(change_weather)
 
 # Create the app
-app = dash.Dash(__name__)
+st.title('Bike Sharing Dashboard')
 
-# Define the layout
-app.layout = html.Div([
-    html.H1('Bike Sharing Dashboard'),
-    dcc.Tabs(id="tabs", value='tab-1', children=[
-        dcc.Tab(label='Hourly Bike Sharing', value='tab-1'),
-        dcc.Tab(label='Daily Bike Sharing', value='tab-2'),
-        dcc.Tab(label='Annual Bike Sharing', value='tab-3'),
-        dcc.Tab(label='Weather Impact', value='tab-4'),
-    ]),
-    html.Div(id='tabs-content')
-])
+# Create tabs
+tab1, tab2, tab3, tab4 = st.tabs(['Hourly Bike Sharing', 'Daily Bike Sharing', 'Annual Bike Sharing', 'Weather Impact'])
 
-# Define the callback for the tabs
-@app.callback(Output('tabs-content', 'children'),
-              Input('tabs', 'value'))
-def render_content(tab):
-    if tab == 'tab-1':
-        fig = px.bar(hour, x='hr', y='total_user', color='workingday', barmode='group')
-        return html.Div([
-            html.H3('Hourly Bike Sharing'),
-            dcc.Graph(figure=fig)
-        ])
-    elif tab == 'tab-2':
-        sum_casual_user = day.groupby("day").casual_user.sum().sort_values( ascending=False).reset_index()
-        sum_registered_user = day.groupby("day").registered_user.sum().sort_values(ascending=False).reset_index()
-        daily_user = pd.merge(
-            left=sum_casual_user,
-            right=sum_registered_user,
-            how="left",
-            left_on="day",
-            right_on="day"
-        )
-        daily_user_type = daily_user.melt(id_vars='day', var_name='user_type', value_name='user_count')
-        fig = px.bar(daily_user_type, x='day', y='user_count', color='user_type', barmode='group')
-        return html.Div([
-            html.H3('Daily Bike Sharing'),
-            dcc.Graph(figure=fig)
-        ])
-    elif tab == 'tab-3':
-        monthly_counts = day.groupby(by=["month","year"]).agg({
-            "total_user": "sum"
-        }).reset_index()
-        fig = px.line(monthly_counts, x='month', y='total_user', color='year')
-        return html.Div([
-            html.H3('Annual Bike Sharing'),
-            dcc.Graph(figure=fig)
-        ])
-    elif tab == 'tab-4':
-        fig = px.bar(day, x='weather', y='total_user')
-        return html.Div([
-            html.H3('Weather Impact'),
-            dcc.Graph(figure=fig)
-        ])
+# Tab 1: Hourly Bike Sharing
+with tab1:
+    fig = px.bar(hour, x='hr', y='total_user', color='workingday', barmode='group')
+    st.write('Hourly Bike Sharing')
+    st.plotly_chart(fig, use_container_width=True)
 
-# Run the app
-if __name__ == '__main__':
-    app.run_server(debug=True)
+# Tab 2: Daily Bike Sharing
+with tab2:
+    sum_casual_user = day.groupby("day").casual_user.sum().sort_values( ascending=False).reset_index()
+    sum_registered_user = day.groupby("day").registered_user.sum().sort_values(ascending=False).reset_index()
+    daily_user = pd.merge(
+        left=sum_casual_user,
+        right=sum_registered_user,
+        how="left",
+        left_on="day",
+        right_on="day"
+    )
+    daily_user_type = daily_user.melt(id_vars='day', var_name='user_type', value_name='user_count')
+    fig = px.bar(daily_user_type, x='day', y='user_count', color='user_type', barmode='group')
+    st.write('Daily Bike Sharing ')
+    st.plotly_chart(fig, use_container_width=True)
+
+# Tab 3: Annual Bike Sharing
+with tab3:
+    monthly_counts = day.groupby(by=["month","year"]).agg({
+        "total_user": "sum"
+    }).reset_index()
+    fig = px.line(monthly_counts, x='month', y='total_user', color='year')
+    st.write('Annual Bike Sharing')
+    st.plotly_chart(fig, use_container_width=True)
+
+# Tab 4: Weather Impact
+with tab4:
+    fig = px.bar(day, x='weather', y='total_user')
+    st.write('Weather Impact')
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Create a matplotlib plot
+    fig, ax = plt.subplots()
+    ax.bar(day['weather'], day['total_user'])
+    ax.set_title('Weather Impact')
+    ax.set_xlabel('Weather')
+    ax.set_ylabel('Total User')
+    st.pyplot(fig)
